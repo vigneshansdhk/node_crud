@@ -22,9 +22,6 @@ exports.userValidationRules = () => {
 exports.validate = (req, res, next) => {
   const errors = validationResult(req);
   if (errors.isEmpty()) return next();
-  console.log(errors);
-  
-
   const extractedErrors = errors.array().map(err => ({
     [err.path]: err.msg
   }));
