@@ -1,5 +1,16 @@
 
 const Post = require('../models/Post');
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const BlackListToken = require('../models/blackListToken');
+
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, "your_secret_key", {
+    expiresIn: '30d'
+  });
+};
 
 exports.index = async(req, res) => {
      try {
@@ -9,6 +20,28 @@ exports.index = async(req, res) => {
     res.status(500).json({ error: err.message });
   }
 }
+
+//Register
+
+exports.createUser = async (req, res) => {
+  try {
+    const { name, email,phone_number,password,address } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({ name, email,password: hashedPassword,phone_number,address });
+
+    const token = generateToken(user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'User created successfully',
+      data: {user,token},
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
 // Create
@@ -56,7 +89,31 @@ exports.deletePost= async(req, res) => {
      try {
     const post = await Post.findByPk(req.params.id);
     await post.destroy();
-    res.status(201).json({message:"delete successfully"});
+   return res.status(201).json({message:"delete successfully"});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+
+// logout user
+
+
+exports.logoutUser= async(req, res) => {
+
+     try {
+    const authHeader = req.headers.authorization;
+
+    if(!authHeader) {
+      return res.status(401).json({message : "Token is missing"});
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    await BlackListToken.create({ token : token });
+
+    return res.status(200).json({message:"Logout successfully"});
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
